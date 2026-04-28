@@ -1,0 +1,51 @@
+{
+  "name": "intent-kit",
+  "version": "0.1.0",
+  "description": "Git-native Intent-Driven Development for AI coding agents — auto-traceable intent → spec → plan → commit, works with Claude Code, Codex, OpenCode, omo, omc, omx, superpowers.",
+  "keywords": [
+    "intent-driven-development",
+    "idd",
+    "claude-code",
+    "codex",
+    "opencode",
+    "superpowers",
+    "git-hooks",
+    "ai-coding-agent",
+    "commit-trailer",
+    "prompt-engineering"
+  ],
+  "homepage": "https://github.com/Atipico1/intent-driven-development",
+  "bugs": {
+    "url": "https://github.com/Atipico1/intent-driven-development/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Atipico1/intent-driven-development.git"
+  },
+  "license": "MIT",
+  "author": "Atipico1",
+  "type": "module",
+  "main": "src/cli.js",
+  "bin": {
+    "intent-kit": "bin/intent-kit.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "assets/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test tests/",
+    "smoke": "node tests/smoke.js",
+    "prepare": "node bin/intent-kit.js sync 2>/dev/null || true"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "kleur": "^4.1.5"
+  }
+}

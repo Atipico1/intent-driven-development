@@ -1,0 +1,44 @@
+#!/bin/sh
+# intent-kit: pre-commit
+#
+# Enforces the intent → spec → plan dependency chain.
+#   - plan.md requires intent.md AND spec.md (existing on disk OR also staged)
+#   - spec.md requires intent.md (existing on disk OR also staged)
+#
+# Configure intent doc location via env var:
+#   INTENT_KIT_DOCS_DIR  default: docs/intent
+
+set -eu
+
+# Load configurable defaults (paths/names) if .intent-kit-env exists.
+HOOK_DIR=$(dirname "$0")
+[ -f "$HOOK_DIR/.intent-kit-env" ] && . "$HOOK_DIR/.intent-kit-env"
+
+DOCS_DIR="${INTENT_KIT_DOCS_DIR:-docs/intent}"
+
+staged=$(git diff --cached --name-only)
+
+# plan.md requires intent.md + spec.md
+for plan in $(printf '%s\n' "$staged" | grep -E "^${DOCS_DIR}/[^/]+/plan\.md$" || true); do
+  dir=$(dirname "$plan")
+  for required in "$dir/intent.md" "$dir/spec.md"; do
+    if [ ! -f "$required" ] && ! printf '%s\n' "$staged" | grep -qx "$required"; then
+      echo "[intent-kit] ERROR: $plan requires $required to exist or be staged." >&2
+      echo "[intent-kit] Hint: run your agent's brainstorming workflow to produce intent.md + spec.md first." >&2
+      exit 1
+    fi
+  done
+done
+
+# spec.md requires intent.md
+for spec in $(printf '%s\n' "$staged" | grep -E "^${DOCS_DIR}/[^/]+/spec\.md$" || true); do
+  dir=$(dirname "$spec")
+  intent="$dir/intent.md"
+  if [ ! -f "$intent" ] && ! printf '%s\n' "$staged" | grep -qx "$intent"; then
+    echo "[intent-kit] ERROR: $spec requires $intent to exist or be staged." >&2
+    echo "[intent-kit] Hint: capture intent.md before writing spec.md." >&2
+    exit 1
+  fi
+done
+
+exit 0

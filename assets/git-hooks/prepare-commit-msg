@@ -1,0 +1,59 @@
+#!/bin/sh
+# intent-kit: prepare-commit-msg
+#
+# Commits prefixed with "[xxxxx] " (5 hex chars) get looked up against the
+# `hash:` frontmatter field in <intent-glob>/intent.md files. On match, the
+# Intent: / Spec: / Plan: trailers are appended. The prefix is always stripped
+# from the final message — match or not — so it is purely a routing marker,
+# never written to git history.
+#
+# Configure intent doc location via env var:
+#   INTENT_KIT_DOCS_DIR  default: docs/intent
+#
+# Generate a hash for a slug with:
+#   printf '%s' "$slug" | shasum | cut -c1-5
+#
+# POSIX sh — runs in all git clients.
+set -eu
+
+# Load configurable defaults (paths/names) if .intent-kit-env exists.
+HOOK_DIR=$(dirname "$0")
+[ -f "$HOOK_DIR/.intent-kit-env" ] && . "$HOOK_DIR/.intent-kit-env"
+
+MSG_FILE="$1"
+MSG_SOURCE="${2:-}"
+
+# Skip non-author-intent sources (merge, squash, template, amend with -m)
+case "$MSG_SOURCE" in
+  merge|squash|commit|template) exit 0 ;;
+esac
+
+DOCS_DIR="${INTENT_KIT_DOCS_DIR:-docs/intent}"
+
+first_line=$(head -n1 "$MSG_FILE")
+hash=$(printf '%s' "$first_line" | sed -nE 's/^\[([a-fA-F0-9]{5})\] .*/\1/p')
+
+# No prefix → no-op
+[ -z "$hash" ] && exit 0
+
+# Always strip the "[xxxxx] " prefix from the first line, match or not.
+tmp=$(mktemp)
+awk -v h="$hash" 'NR==1 { sub("^\\[" h "\\] ", "") } { print }' "$MSG_FILE" > "$tmp"
+mv "$tmp" "$MSG_FILE"
+
+# Find the slug whose intent.md declares this hash.
+intent=$(grep -l "^hash: $hash\$" "$DOCS_DIR"/*/intent.md 2>/dev/null | head -n1)
+[ -z "$intent" ] && exit 0
+
+DIR=$(dirname "$intent")
+
+args=""
+[ -f "$DIR/intent.md" ] && args="$args --trailer Intent=$DIR/intent.md"
+[ -f "$DIR/spec.md" ]   && args="$args --trailer Spec=$DIR/spec.md"
+[ -f "$DIR/plan.md" ]   && args="$args --trailer Plan=$DIR/plan.md"
+
+[ -z "$args" ] && exit 0
+
+# shellcheck disable=SC2086
+git interpret-trailers --in-place --if-exists doNothing $args "$MSG_FILE"
+exit 0
