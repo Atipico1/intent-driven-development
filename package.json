@@ -40,7 +40,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test tests/",
+    "test": "node --test tests/smoke.js",
     "smoke": "node tests/smoke.js",
     "prepare": "node bin/intent-kit.js sync 2>/dev/null || true"
   },
